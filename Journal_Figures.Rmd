@@ -16,6 +16,7 @@ library(dplyr)
 library(ggplot2)
 library(grid)
 library(gridExtra)
+library(RCurl)
 ```
 
 The next thing I'll do is set my default theme. I like doing this because it prevents me from having to change the theme on every figure. You still can manipulate the theme, because code that comes after the theme_update command supersedes the command.
@@ -36,7 +37,8 @@ Before making any figure, I usually draw it out on paper. It doesn't have to be 
 Today, we are going to make a three-panel plot using made up data. In this scenario, I went to 240 different restaurants across three states (4 cities per state) and polled the yearly attendance (attendees per year) and the size (in m^2) of the restaurant. We were also interested if the restraunt was BYOB (bring your own booze) to see if that played a role in attendance. Let's look at the data to help us organize our thoughts:
 
 ```{r}
-data <- read.csv("C:/Users/Nicholas/Desktop/Github_Misc2/tutorial.csv")
+library(curl) # allows me to download csv from online repository
+data <- read.csv(curl("https://raw.githubusercontent.com/nicholascdove/Tutorials/master/restaurants.csv"))
 
 summary(data)
 str(data)
