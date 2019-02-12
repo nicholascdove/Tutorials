@@ -1,0 +1,215 @@
+---
+title: "Making high-quality figures using R: tips and tricks using dplyr, ggplot2, grid, and gridExtra"
+output: html_document
+---
+
+If you've stumbled upon this tutorial, you probably don't need to be convinced the benefits of automating figure production or the "magic" of R's many packages in creating high-quality, adaptable figures. Therefore, I'll skip justifying the use of automation (see: [data viz texbook] and [data carpentries website]). Similarly, I'll spend little time justifying the use of the packages listed in the title. By no means is this an exhaustive list of all the packages that are useful for data viz in R (I also really like ggmap). However, I think using these will significantly improve one's figures, especially if you currently use Excel, base R, Powerpoint, or a combination of these in your figure production pipeline.
+
+For the purpose of this exercise, we'll go through the production as if I (@nicholascdove) were creating a figure for publication. I certainly have my own tastes and biases that are reflective of my field (Ecology/Life Sciences), so take everything (especially stylistically) I say with a grain of salt. However, I'll try to back up my stylistic choices with arguments for why I made them, so you can make the best decisions for your figures.
+
+## Set up
+
+First, let's call the packages that we will be using. Briefly, I use dplyr because of its ability to manipulate data in an easy, readable way. Without getting too much into it, I like the use of the pipe function (%>%), which basically feeds outputs into new functions. When reading the code, in your head you can substitute the word "then" for %>%. ggplot2 will be the main package we will be using for figure creation. It comes with its own sort of syntax, which will become apparent, but its versatility is unmatched. grid and gridExtra are useful functions for combining plots. Often, we have subfigures that make up a complete figure (i.e., Figure Xa or Figure Xb). This put these together and also allows for graphical objects in the margins of your plots (e.g., "b)" on the top left corner of the plot).
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(grid)
+library(gridExtra)
+```
+
+The next thing I'll do is set my default theme. I like doing this because it prevents me from having to change the theme on every figure. You still can manipulate the theme, because code that comes after the theme_update command supersedes the command.
+
+Since this figure is for a journal publication, I'm going to set the text at an appropriate size. Make journals have their own guidelines for the size of axes text or titles, so it is important to reference these. Also, if I were making these figures for a Powerpoint presentation or poster, I would obviously want to increase the text size.
+
+```{r}
+theme_set(theme_bw()) # this is a base theme I like. Personally, I don't like the default ggplot2 theme for reasons I won't get into here
+
+theme_update(axis.title = element_text(size = 11), axis.text = element_text(size = 10),
+             legend.text = element_text(size = 10), legend.title = element_text(size = 10), 
+             panel.grid.major = element_blank(), panel.grid.minor = element_blank())
+```
+
+## Making the plots
+Before making any figure, I usually draw it out on paper. It doesn't have to be super detailed, but, personally, it helps me organize my thoughts.
+
+Today, we are going to make a three-panel plot using made up data. In this scenario, I went to 240 different restaurants across three states (4 cities per state) and polled the yearly attendance (attendees per year) and the size (in m^2) of the restaurant. We were also interested if the restraunt was BYOB (bring your own booze) to see if that played a role in attendance. Let's look at the data to help us organize our thoughts:
+
+```{r}
+data <- read.csv("C:/Users/Nicholas/Desktop/Github_Misc2/tutorial.csv")
+
+summary(data)
+str(data)
+head(data)
+```
+
+I especially like to look at the structure using str(), because it tells me my different data types. As you can see we have four integer or continuous data columns, not including the identity. They are: attendance, size, BYOB, and city population. We also have two 'factor' data columns. A factor is a type of data where the different values (levels) are predetermined. For example, we only went to three states, so there are only three possibilities here. Great job if you noticed that BYOB was incorrectly labeled as a continuous category. Sometimes, factors are coded using numbers. In this case 0 = no and 1 = yes. We will have to fix this before our next step.
+
+#Plot #1: attendance across states for BYOB and non-BYOB restaurants
+
+For this we will make a bar graph. Generally, I don't particularly like bar graphs because they give less information of the distributions of the data and they take an extra step to make in R. However, they are standard in many fields, and they do sort of make sense were you are using them to visualize means testing (i.e, t-tests or ANOVAs). So, to start, we will extract the means and standard errors for the data set using dplyr
+
+```{r}
+data$BYOB <- as.factor(data$BYOB) # make BYOB a factor
+
+sum <- data %>% 
+  group_by(state, BYOB) %>%
+  summarise(mean = mean(attendance), se = sd(attendance)/sqrt(n()))
+print(sum)
+```
+Great, now that we have these summary statistics, we can plot them using ggplot2.
+
+```{r}
+plot.1 <- ggplot(data = sum, aes(x = state, y = mean, fill = BYOB)) +
+  geom_bar(stat = "identity", position = position_dodge())
+
+plot.1
+```
+
+Alright, so we have our first plot. If you're familiar with R, but not ggplot2, you may automatically see that the syntax is a little bit different than you might be used to. Basically, you create your base plot with ggplot() then add geometric objects using geom_bar or geom_boxplot or geom_point. Everything is added and customized in the plot using the '+' sign.
+
+This plot is hardly publication quality. First of all, its missing the error bars, so we should fix this. Secondly, it's ugly. Now that's a bit of a subjective statement on my part. The Data Viz textbook has a great section on the difference between good, bad, and ugly plots, so I won't go too far into it, but to me, an attractive plot makes it easiest for the audience to understand the data. For instance, in the above plot, how would the audience be able to know what '0' or '1' was in the BYOB legend. Let's fix these things. Again, I'm going to take my plot and add to it.
+
+```{r}
+
+plot.1 <- ggplot(data = sum, aes(x = state, y = mean, fill = BYOB)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  geom_errorbar(data = sum, aes(ymin = mean - se, ymax = mean + se), 
+                position = position_dodge(.8), width = 0.4) +
+  labs(x = "State", y = "Yearly Patronage") +
+  scale_fill_manual(values = c("lightgray", "#20639B"), labels = c("No", "Yes")) +
+  theme(legend.position = "bottom")
+
+plot.1
+```
+
+Personally, I think this plot looks pretty good. Overall, it's clean, and I think it's pretty easily interpretable. 1) Patronage doesn't differ whether the property is BYOB, and 2) Patronage doesn't really differ by state. Now if I were making this figure for a poster or a presentation, I title might be nice. However, for journal figures in the life sciences it is conventional to have the title of a figure in the caption.
+
+Okay, now let's make some more plots.
+
+#Plot #2: Attendance by restaurant size.
+
+For this plot, we will make a scatterplot with a line relating these two variables. Since we are not using summary statistics, we can go back to our original data frame. Again, let's start by creating a base plot.
+
+```{r}
+
+plot.2 <- ggplot(data = data, aes(x = size, y = attendance, col = state)) +
+  geom_point()
+
+plot.2
+```
+
+Again, this plot needs some work. First, let's make the axes a little more interpretable, including units. Two, let's change the colors and add some trendlines. Three, change the values on the x-axis and move the legend to the bottom, which will help with our final plot.
+
+```{r}
+plot.2 <- ggplot(data = data, aes(x = size, y = attendance, col = state)) +
+  geom_point() +
+  scale_color_manual(values = c("#3CAEA3", "#F6D55C", "#ED553B")) +
+  labs(x = bquote("Restaurant size ("~m^2*")"), y = "Year Patronage", col = NULL) +
+  geom_smooth(data = data %>% filter(state != "NY"), 
+              aes(x = size, y = attendance, col = state), method = "lm") +
+  theme(legend.position = "bottom", legend.text = element_text(size = 9)) +
+  scale_x_continuous(breaks = c(300, 500, 700))
+
+plot.2
+
+```
+
+A couple new things: 1) I added a superscript in the label. Nothing screams ugly like a "^" in a label. I feel the same way about "/". Instead you should use "^-1". This can be done easily using the bquote() command. You basically, type a label like you normally would using quotation marks, but when you are about to incorporate a "special" character, you use the "~" sign. After your "special" characters, you use the "*" sign and continue writing in quotation marks. 2) I added trendlines for CA and OH. It's pretty obvious from looking at the data that there is no trend for NY. In this case I guess size doesn't matter. So, I filtered the data going into the geom_smooth() using filter() from the dplyr package.
+
+#Plot #3: attendance by city size
+
+Sometimes there are certain data types that are technically continuous, but they are best visualized as discrete (e.g., categorical, ordered, etc.). This is because there are many points with the same value. Let me illustrate what I mean:
+
+```{r}
+
+plot.3 <- ggplot(data = data, aes(x = city.pop, y = attendance)) +
+  geom_point()
+
+plot.3
+```
+
+You see those lines of points? Not exactly beautiful. Each line of dots is actually a city. So let's then represent each city using a boxplot.
+
+```{r}
+plot.3 <- ggplot(data = data, aes(x = city.pop, y = attendance, group = city)) +
+  geom_boxplot()
+
+plot.3
+
+```
+
+To me, this is much cleaner and is overall a better way to represent the data. For one, we can now easily identify summary statistics like the median. Let's now add some more information like a color for each state (using the same colors as before) and a trendline.
+
+```{r}
+plot.3 <- ggplot() +
+  geom_boxplot(data = data, aes(x = city.pop / 1000000, y = attendance, 
+                                group = city, fill = state)) +
+  scale_fill_manual(values = c("#3CAEA3", "#F6D55C", "#ED553B")) +
+  geom_smooth(data = data, aes(x = city.pop / 1000000, y = attendance), 
+              method = "lm", formula = y ~ log(x), col = "black") +
+  labs(x = "City Population (millions)", y = "Yearly Patronage", fill = NULL)
+
+plot.3
+```
+
+This is looking pretty good. Notice how we added a curved trendline. In the formula within geom_smooth(), I said we wanted a logarithmic function because that looked to represent the data best. I also changed the x-axis a bit. Instead of having these really large numbers with lots of zeros that are hard to read (see the next figure up), I just divided the numbers (both in the boxplot and smooth geoms) by a million to make it easier to read and conceptualize.
+
+Sometimes we may be especially interested in certain data points, and it can be desirable to annotate labels for these. Let's do this by labelling a few cities using the annotate() function.
+
+```{r}
+
+plot.3 <- ggplot() +
+  geom_boxplot(data = data, aes(x = city.pop / 1000000, y = attendance, 
+                                group = city, fill = state)) +
+  scale_fill_manual(values = c("#3CAEA3", "#F6D55C", "#ED553B")) +
+  geom_smooth(data = data, aes(x = city.pop / 1000000, y = attendance), 
+              method = "lm", formula = y ~ log(x), col = "black") +
+  labs(x = "City Population (millions)", y = "Yearly Patronage", fill = NULL) +
+  annotate(geom = "text", x = 0.1, y = 3000, label = "Merced, CA", hjust = 0) +
+  annotate(geom = "text", x = .8, y = 4000, label = "Columbus, OH", hjust = 0) +
+  annotate(geom = "text", x = 1.35, y = 7500, label = "San Diego, CA", hjust = 1) + 
+  theme(legend.position = "bottom")
+
+plot.3
+```
+
+It can sometimes take a few tries to get the labels where you want them, but it is generally pretty easy to estimate where they should go. You can also make this more systematic by linking the xy location to actual data, but that is more than what we want to get into today.
+
+## Linking the plots together using grid and gridExtra
+
+As I mentioned before, it is generally desirable to merge many figures into one big figure. Lots of journals have limits to how many figures you can have, and this is a great way to maximize space and keep down page costs. So let's get into it.
+
+```{r}
+
+lay = rbind(c(1,3,3),
+            c(2,3,3))
+
+print(grid.arrange(arrangeGrob(plot.1, left = textGrob("a)", x = unit(1, "npc"), 
+                               y = unit(.95, "npc"))), 
+                   arrangeGrob(plot.2, left =textGrob("b)", x = unit(1, "npc"), 
+                               y = unit(1, "npc"))),
+                   arrangeGrob(plot.3, left=textGrob("c)", x = unit(1, "npc"), 
+                               y = unit(.95, "npc"))),
+                   layout_matrix = lay))
+
+```
+
+The first thing I did was make my layout. This is a somewhat complicated with two subfigures smaller and stacked on top of each other. Basically, I used rbind to create a matrix with the number signifying the figure number. The send thing I did here was to put a subfigure letter in the upper-left corner for each figure. You can then reference each individual figure in your caption now.
+
+Finally, let's export this figure to a tiff. A tiff is an image file. Generally, journals like jpegs or tiffs. I like tiffs better because they are less compressed and I don't really care about size. I'd rather have the resolution which I can set directly. Another thing that is important here is to export the figure in the dimensions you want. Typically, a 2-column figure is 6 in wide and a 1-coulmn figure is 3 in wide. My general rule is if your figure is legible as a 1-column figure, then do that. However, our current figure is definitely a 2-column figure.
+
+```{r}
+tiff("workshop_fig.tif",width = 6, height = 4.5, units = "in", res = 600)                        
+print(grid.arrange(arrangeGrob(plot.1, left = textGrob("a)", x = unit(1, "npc"), 
+                               y = unit(.95, "npc"))), 
+                   arrangeGrob(plot.2, left =textGrob("b)", x = unit(1, "npc"), 
+                               y = unit(1, "npc"))),
+                   arrangeGrob(plot.3, left=textGrob("c)", x = unit(1, "npc"), 
+                               y = unit(.95, "npc"))),
+                   layout_matrix = lay))
+dev.off()
+
+```
+
+Just like that you're making high-quality figures using ggplot2. Another thing: there are a lot of resources for ggplot2. Pretty much anything you can think of has been done. The R user base is great and ggplot2 is unparalleled for its malleability. This tutorial should have given you a flavor of what is possible, but the limits of your figures will be that of your imagination. 
