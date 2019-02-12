@@ -3,9 +3,9 @@ title: "Making high-quality figures using R: tips and tricks using dplyr, ggplot
 output: html_document
 ---
 
-If you've stumbled upon this tutorial, you probably don't need to be convinced the benefits of automating figure production or the "magic" of R's many packages in creating high-quality, adaptable figures. Therefore, I'll skip justifying the use of automation (see: [data viz texbook] and [data carpentries website]). Similarly, I'll spend little time justifying the use of the packages listed in the title. By no means is this an exhaustive list of all the packages that are useful for data viz in R (I also really like ggmap). However, I think using these will significantly improve one's figures, especially if you currently use Excel, base R, Powerpoint, or a combination of these in your figure production pipeline.
+If you've stumbled upon this tutorial, you probably don't need to be convinced the benefits of automating figure production or the "magic" of R's many packages in creating high-quality, adaptable figures. Therefore, I'll skip justifying the use of automation (see: [Fundamentals of Data Visualization](https://serialmentor.com/dataviz/ "Data Viz Textbook") and [Data Carpentry Lessons](https://datacarpentry.org/lessons/ "Data Carpentry Website")). Similarly, I'll spend little time justifying the use of the packages listed in the title. By no means is this an exhaustive list of all the packages that are useful for data viz in R (I also really like [ggmap](https://github.com/dkahle/ggmap "ggmap package repository")). However, I think using these will significantly improve one's figures, especially if you currently use Excel, base R, Powerpoint, or a combination of these in your figure production pipeline.
 
-For the purpose of this exercise, we'll go through the production as if I (@nicholascdove) were creating a figure for publication. I certainly have my own tastes and biases that are reflective of my field (Ecology/Life Sciences), so take everything (especially stylistically) I say with a grain of salt. However, I'll try to back up my stylistic choices with arguments for why I made them, so you can make the best decisions for your figures.
+For the purpose of this exercise, we'll go through the production as if I ([@nicholascdove](https://github.com/nicholascdove "my github page")) were creating a figure for publication. I certainly have my own tastes and biases that are reflective of my field (Ecology/Life Sciences), so take everything (especially stylistically) I say with a grain of salt. However, I'll try to back up my stylistic choices with arguments for why I made them, so you can make the best decisions for your figures.
 
 ## Set up
 
@@ -16,7 +16,6 @@ library(dplyr)
 library(ggplot2)
 library(grid)
 library(gridExtra)
-library(RCurl)
 ```
 
 The next thing I'll do is set my default theme. I like doing this because it prevents me from having to change the theme on every figure. You still can manipulate the theme, because code that comes after the theme_update command supersedes the command.
@@ -34,7 +33,7 @@ theme_update(axis.title = element_text(size = 11), axis.text = element_text(size
 ## Making the plots
 Before making any figure, I usually draw it out on paper. It doesn't have to be super detailed, but, personally, it helps me organize my thoughts.
 
-Today, we are going to make a three-panel plot using made up data. In this scenario, I went to 240 different restaurants across three states (4 cities per state) and polled the yearly attendance (attendees per year) and the size (in m^2) of the restaurant. We were also interested if the restraunt was BYOB (bring your own booze) to see if that played a role in attendance. Let's look at the data to help us organize our thoughts:
+Today, we are going to make a three-panel plot using made up data. In this scenario, I went to 240 different restaurants across three states (4 cities per state) and polled the yearly attendance (attendees per year) and the size (in m<sup>2</sup>) of the restaurant. We were also interested if the restraunt was BYOB (bring your own booze) to see if that played a role in attendance. Let's look at the data to help us organize our thoughts:
 
 ```{r}
 library(curl) # allows me to download csv from online repository
@@ -117,7 +116,7 @@ plot.2
 
 ```
 
-A couple new things: 1) I added a superscript in the label. Nothing screams ugly like a "^" in a label. I feel the same way about "/". Instead you should use "^-1". This can be done easily using the bquote() command. You basically, type a label like you normally would using quotation marks, but when you are about to incorporate a "special" character, you use the "~" sign. After your "special" characters, you use the "*" sign and continue writing in quotation marks. 2) I added trendlines for CA and OH. It's pretty obvious from looking at the data that there is no trend for NY. In this case I guess size doesn't matter. So, I filtered the data going into the geom_smooth() using filter() from the dplyr package.
+A couple new things: 1) I added a superscript in the label. Nothing screams ugly like a "^" in a label. I feel the same way about "/". Instead, you should use "<sup>-1</sup>". This can be done easily using the bquote() command. You basically, type a label like you normally would using quotation marks, but when you are about to incorporate a "special" character, you use the "~" sign. After your "special" characters, you use the "* " sign and continue writing in quotation marks. 2) I added trendlines for CA and OH. It's pretty obvious from looking at the data that there is no trend for NY. In this case I guess size doesn't matter. So, I filtered the data going into the geom_smooth() using filter() from the dplyr package.
 
 #Plot #3: attendance by city size
 
@@ -214,4 +213,4 @@ dev.off()
 
 ```
 
-Just like that you're making high-quality figures using ggplot2. Another thing: there are a lot of resources for ggplot2. Pretty much anything you can think of has been done. The R user base is great and ggplot2 is unparalleled for its malleability. This tutorial should have given you a flavor of what is possible, but the limits of your figures will be that of your imagination. 
+Just like that you're making high-quality figures using ggplot2. Another thing: there are a lot of [resources](https://www.rstudio.com/wp-content/uploads/2015/03/ggplot2-cheatsheet.pdf "ggplot2 cheatsheet") for ggplot2. Pretty much anything you can think of has been done. The R user base is great and ggplot2 is unparalleled for its malleability. This tutorial should have given you a flavor of what is possible, but the limits of your figures will be that of your imagination. 
